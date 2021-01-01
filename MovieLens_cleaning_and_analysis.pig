@@ -2,13 +2,23 @@
 -- describe data: http://files.grouplens.org/datasets/movielens/ml-latest-small-README.html
 
 
+
+/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+/*-----------------------------------SETUP---------------------------------------*/
+/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+-- Ensure the 'dump' command will run on mapreduce mode
+set opt.fetch false
+
+
+
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 /*------------------------READ IN MOVIE DATA & CLEAN-----------------------------*/
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 -- Read in the data
 DEFINE CSVLoader org.apache.pig.piggybank.storage.CSVLoader();
-read_movies = LOAD '../ml-latest-small/movies.csv' using CSVLoader() AS (movieId:int, title:chararray, genres:chararray);
+read_movies = LOAD 'ml-latest-small/movies.csv' using CSVLoader() AS (movieId:int, title:chararray, genres:chararray);
 
 -- Filter out the first row of titles
 movies = FILTER read_movies BY (SUBSTRING(title, 0, 5) != 'title') AND (SUBSTRING(genres, 0, 6) != 'genres');
@@ -45,7 +55,7 @@ STORE fully_cleaned_movies INTO 'output/cleaned_movies' using PigStorage('|');
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 -- Read in the data
-read_ratings = LOAD '../ml-latest-small/ratings.csv' using PigStorage(',') AS (userId:int, movieId:int, rating:int, timestamp:int);
+read_ratings = LOAD 'ml-latest-small/ratings.csv' using PigStorage(',') AS (userId:int, movieId:int, rating:int, timestamp:int);
 
 -- Filter out the first row as it is empty
 comma_del_ratings = FILTER read_ratings BY (userId IS NOT NULL) AND (movieId IS NOT NULL);
@@ -81,7 +91,9 @@ STORE joined_movies_and_ratings INTO 'output/cleaned_movies_nd_ratings' using Pi
 /*------------------------------FULL PIG ANALYSIS--------------------------------*/
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-/*=====================(1)==================*/
+
+/*=====================Most_Rated_Movie==================*/
+
 -- Read back in the joined cleaned up movie and rating file with the pipe as a delimiter
 cleaned_movies_nd_ratings = LOAD 'output/cleaned_movies_nd_ratings' using PigStorage('|') AS (movieId:int, title:chararray, year:chararray, genres:chararray, userId:int, rating:int, timestamp:int);
 
@@ -96,8 +108,9 @@ top_movie_rating = FOREACH (GROUP count_movie_ratings ALL) {
     GENERATE FLATTEN(limited);
 }
 
+dump top_movie_rating
 
-/*=====================(2)==================*/
+/*=====================Most_Liked_Movie==================*/
 
 -- Read back in the joined cleaned up movie and rating file with the pipe as a delimiter
 cleaned_movies_nd_ratings = LOAD 'output/cleaned_movies_nd_ratings' using PigStorage('|') AS (movieId:int, title:chararray, year:chararray, genres:chararray, userId:int, rating:int, timestamp:int);
@@ -112,42 +125,29 @@ group_movies = GROUP count_num_each_rating_for_each_movie BY (movieId, title);
 -- Calculate the average rating for each movie
 average_movie_ratings = FOREACH group_movies {
 	rating_times_num_of_ratings = FOREACH count_num_each_rating_for_each_movie GENERATE rating * num_ratings;
-    GENERATE group.movieId, group.title, (float)SUM(rating_times_num_of_ratings) / SUM(count_num_each_rating_for_each_movie.num_ratings) AS rating_average;
-}
-
--- Find the movies where the average rating is 5
-five_star_movies = FOREACH (GROUP average_movie_ratings ALL) {
-	filtered = FILTER average_movie_ratings BY rating_average == (float)5.0;
-    GENERATE FLATTEN(filtered);
-}
-
--- Count the number of movies that had an average score of 5 stars
-five_star_movies_count = FOREACH (GROUP five_star_movies ALL) GENERATE COUNT(five_star_movies);
-
-
--- Calculate the average rating for each movie
-average_movie_ratings_2 = FOREACH group_movies {
-	rating_times_num_of_ratings = FOREACH count_num_each_rating_for_each_movie GENERATE rating * num_ratings;
     GENERATE group.movieId, group.title, SUM(count_num_each_rating_for_each_movie.num_ratings) AS num_ratings, (float)SUM(rating_times_num_of_ratings) / SUM(count_num_each_rating_for_each_movie.num_ratings) AS rating_average;
 }
 
--- Find the most rated movie of all movies where the movies average rating is 5
-most_liked_movie = FOREACH (GROUP average_movie_ratings_2 ALL) {
-	filtered = FILTER average_movie_ratings_2 BY rating_average == (float)5.0;
-	ordered_five_star_movies = ORDER filtered BY num_ratings DESC;
-	most_rated_move_with_5_star_avg = LIMIT ordered_five_star_movies 1;
-    GENERATE FLATTEN(most_rated_move_with_5_star_avg);
+-- Find the most rated movie of all movies where the movies average rating is 4-stars or above
+most_liked_movie = FOREACH (GROUP average_movie_ratings ALL) {
+	filtered = FILTER average_movie_ratings BY rating_average >= (float)4.0;
+	ordered_movies = ORDER filtered BY num_ratings DESC;
+	most_rated_movie_with_specified_avg = LIMIT ordered_movies 1;
+    GENERATE FLATTEN(most_rated_movie_with_specified_avg);
 }
 
--- Find the multiple most rated movise of all movies where the movies average rating is 5
-most_liked_movies = FOREACH (GROUP average_movie_ratings_2 ALL) {
-	filtered = FILTER average_movie_ratings_2 BY (rating_average == (float)5.0) AND (num_ratings == (int)2);
+dump most_liked_movie
+
+-- Find the multiple most rated movies of all movies where the movies average rating is 4.0 stars or above
+most_liked_movies = FOREACH (GROUP average_movie_ratings ALL) {
+	filtered = FILTER average_movie_ratings BY (rating_average >= (float)4.0) AND (num_ratings == (int)6);
     GENERATE FLATTEN(filtered);
 }
 
+dump most_liked_movies
 
 
-/*=====================(3)==================*/
+/*=====================User_With_Highest_Average_Rating==================*/
 
 -- Read back in the joined cleaned up movie and rating file with the pipe as a delimiter
 cleaned_movies_nd_ratings = LOAD 'output/cleaned_movies_nd_ratings' using PigStorage('|') AS (movieId:int, title:chararray, year:chararray, genres:chararray, userId:int, rating:int, timestamp:int);
@@ -156,28 +156,22 @@ cleaned_movies_nd_ratings = LOAD 'output/cleaned_movies_nd_ratings' using PigSto
 group_users = GROUP cleaned_movies_nd_ratings BY userId;
 
 -- Get the average rating for each user
-average_user_rating = FOREACH group_users GENERATE group As userId, AVG(cleaned_movies_nd_ratings.rating) AS average_rating;
-
--- Get the user with the highest average rating_average
-user_highest_avg = FOREACH (GROUP average_user_rating ALL) {
-	ordered = ORDER average_user_rating by average_rating DESC;
-	limited = LIMIT ordered 1;
-	GENERATE FLATTEN(limited);
-}
-
--- Get the average rating for each user
-average_user_rating_2 = FOREACH group_users GENERATE group As userId, SUM(cleaned_movies_nd_ratings.rating) as num_ratings, AVG(cleaned_movies_nd_ratings.rating) AS average_rating;
+average_user_rating = FOREACH group_users GENERATE group As userId, SUM(cleaned_movies_nd_ratings.rating) as num_ratings, AVG(cleaned_movies_nd_ratings.rating) AS average_rating;
 
 -- Get the users with 5-star rating who has the most number of ratings places
-user_highest_avg_2 = FOREACH (GROUP average_user_rating_2 ALL) {
-	filtered = FILTER average_user_rating_2 BY average_rating == (float)5.0;
+user_highest_avg = FOREACH (GROUP average_user_rating ALL) {
+	filtered = FILTER average_user_rating BY average_rating == (float)5.0;
 	ordered = ORDER filtered by num_ratings DESC;
 	limited = LIMIT ordered 1;
 	GENERATE FLATTEN(limited);
 }
 
+dump user_highest_avg
+
 -- See if anybody else has 100 ratings placed and a 5-star average
-user_highest_avg_3 = FOREACH (GROUP average_user_rating_2 ALL) {
-	filtered = FILTER average_user_rating_2 BY (average_rating == (float)5.0) AND (num_ratings > 99);
+multiple_users_highest_avg = FOREACH (GROUP average_user_rating ALL) {
+	filtered = FILTER average_user_rating BY (average_rating == (float)5.0) AND (num_ratings > 99);
 	GENERATE FLATTEN(filtered);
 }
+
+dump multiple_users_highest_avg
