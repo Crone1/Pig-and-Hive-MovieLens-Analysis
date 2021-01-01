@@ -1,4 +1,4 @@
-This repository contains the college work I did using the big data tool - Pig.
+This repository contains the college work I did during the module 'Data Analysis at Speed and Scale' using the big data tool - Pig.
 
 In this work, I used the MovieLens datast to perform analysis on and run some queries.
 This involved first cleaning the data and then running the queries in PIG.
