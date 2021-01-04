@@ -22,6 +22,6 @@ Before I could clean the data or perform analysis on it, I first had to obtain i
       -- Put the data onto the HDFS in the folder with my username
       hadoop fs -put ml-latest-small /user/Owner/
       
-After these steps, I knew I had the data on the HDFS and could read it into PIG from there. The code in the MovieLens_cleaning_and_analysis.pig file can then be run bit by bit to clean the data and perform the analysis. This is further broke down in the notebook using comments.
+After these steps, I knew I had the data on the HDFS and could read it into PIG from there. The code in the MovieLens_cleaning.pig file can then be run bit by bit to clean the data and then the code in the MovieLens_analysis.pig file can be run to perform the analysis. This is further broke down in the notebooks using comments.
 
 Follow on analysis can be seen in my Hive repository. This repository took the cleaned data from PIG and used this to perform alternate analysis queries. This Hive repository can be found at https://github.com/Crone1/Hive
