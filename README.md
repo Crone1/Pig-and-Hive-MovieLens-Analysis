@@ -30,4 +30,4 @@ This was done using the following commands:
 # Breakdown of the code
 After these steps, I knew I had the data on the HDFS and could read it into PIG from there. The code in the *'Pig_movieLens_cleaning.pig'* file can then be run bit by bit to clean the data and then the code in the *'Pig_movieLens_analysis.pig'* file can be run to perform the analysis. This is further broke down in the notebooks using comments.
 
-The *'Hive_movielens_analysis.hive'* file then further explores this dataset to derive more insights.
+The *'Hive_movieLens_analysis.hive'* file then further explores this dataset to derive more insights.
