@@ -1,11 +1,15 @@
-This repository contains the college work I did during the module 'Data Analysis at Speed and Scale' using the big data tool - Pig.
+# Overview
+This repository contains the my work in analysing the MovieLens dataset using the big data tools Pig and Hive for the module 'Data Analysis at Speed and Scale'.
 
-In this work, I perform analysis and ran some queries on the MovieLens dataset.
-This involved first cleaning the data and then running the queries in PIG.
+A description of the MovieLens data can be seen at http://files.grouplens.org/datasets/movielens/ml-latest-small-README.html
 
-A description of this data can be seen at http://files.grouplens.org/datasets/movielens/ml-latest-small-README.html
+In this work, I perform analysis and ran queries on this dataset in both Pig and Hive, however, I first needed to clean the data in PIG.
 
-Before I could clean the data or perform analysis on it, I first had to obtain it and put it onto my HDFS cluster. This was done using the following commands:
+I used google cloud platform for this analysis. I found this much easier and more reliable than having the cluster hosted locally on my computer.
+
+# Obtaining the data
+Before I could clean the data or perform analysis on it, I first had to obtain it and put it onto my HDFS cluster.
+This was done using the following commands:
 
       -- Get the data files
       wget http://files.grouplens.org/datasets/movielens/ml-latest-small.zip
@@ -21,7 +25,9 @@ Before I could clean the data or perform analysis on it, I first had to obtain i
 
       -- Put the data onto the HDFS in the folder with my username
       hadoop fs -put ml-latest-small /user/Owner/
-      
-After these steps, I knew I had the data on the HDFS and could read it into PIG from there. The code in the MovieLens_cleaning.pig file can then be run bit by bit to clean the data and then the code in the MovieLens_analysis.pig file can be run to perform the analysis. This is further broke down in the notebooks using comments.
 
-Follow on analysis can be seen in my Hive repository. This repository took the cleaned data from PIG and used this to perform alternate analysis queries. This Hive repository can be found at https://github.com/Crone1/Hive
+
+# Breakdown of the code
+After these steps, I knew I had the data on the HDFS and could read it into PIG from there. The code in the *'Pig_movieLens_cleaning.pig'* file can then be run bit by bit to clean the data and then the code in the *'Pig_movieLens_analysis.pig'* file can be run to perform the analysis. This is further broke down in the notebooks using comments.
+
+The *'Hive_movielens_analysis.hive'* file then further explores this dataset to derive more insights.
